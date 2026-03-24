@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Исходные файлы">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Файлы заголовков">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Файлы ресурсов">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Файлы заголовков\structures">
+      <UniqueIdentifier>{f8db39d4-0327-411c-8711-bf8b852a2b40}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\metrics">
+      <UniqueIdentifier>{32891466-da67-4d48-b986-0cfdb87a466c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\algorithms">
+      <UniqueIdentifier>{9b78ac11-6115-4b27-8f7e-9da7c4413efb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\metrics">
+      <UniqueIdentifier>{8196f8d7-7609-4f7f-9cbd-eb647e3e23ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\algorithms">
+      <UniqueIdentifier>{017fb8ac-ea7a-4920-bedd-44f99df4d5dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\structures">
+      <UniqueIdentifier>{b653dbda-c241-4a14-9811-bbd291620478}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DebugConfig.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
