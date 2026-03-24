@@ -138,9 +138,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="bench_structures.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="dataset_aos.hpp" />
+    <ClInclude Include="dataset_aosoa.hpp" />
+    <ClInclude Include="dataset_soa.hpp" />
     <ClInclude Include="DebugConfig.h" />
+    <ClInclude Include="ml_coordinate.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
