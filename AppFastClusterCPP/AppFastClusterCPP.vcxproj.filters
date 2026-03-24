@@ -22,24 +22,33 @@
     <Filter Include="Файлы заголовков\algorithms">
       <UniqueIdentifier>{9b78ac11-6115-4b27-8f7e-9da7c4413efb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Исходные файлы\metrics">
-      <UniqueIdentifier>{8196f8d7-7609-4f7f-9cbd-eb647e3e23ed}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Исходные файлы\algorithms">
-      <UniqueIdentifier>{017fb8ac-ea7a-4920-bedd-44f99df4d5dd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Исходные файлы\structures">
-      <UniqueIdentifier>{b653dbda-c241-4a14-9811-bbd291620478}</UniqueIdentifier>
+    <Filter Include="Исходные файлы\benchmarks">
+      <UniqueIdentifier>{24d27593-dc7e-4c24-8434-d733fc17f8d4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="bench_structures.cpp">
+      <Filter>Исходные файлы\benchmarks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DebugConfig.h">
       <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="ml_coordinate.hpp">
+      <Filter>Файлы заголовков\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset_aos.hpp">
+      <Filter>Файлы заголовков\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset_aosoa.hpp">
+      <Filter>Файлы заголовков\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset_soa.hpp">
+      <Filter>Файлы заголовков\structures</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

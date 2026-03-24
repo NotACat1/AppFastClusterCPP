@@ -3,5 +3,8 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Structures/Structures.vcxproj" />
+  </Folder>
   <Project Path="AppFastClusterCPP/AppFastClusterCPP.vcxproj" />
 </Solution>
