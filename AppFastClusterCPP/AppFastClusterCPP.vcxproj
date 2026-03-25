@@ -137,6 +137,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="benc_aosoa.cpp" />
+    <ClCompile Include="benc_aos.cpp" />
+    <ClCompile Include="benc_soa.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="bench_structures.cpp" />
   </ItemGroup>
@@ -145,6 +148,9 @@
     <ClInclude Include="dataset_aosoa.hpp" />
     <ClInclude Include="dataset_soa.hpp" />
     <ClInclude Include="DebugConfig.h" />
+    <ClInclude Include="metric_aos.hpp" />
+    <ClInclude Include="metric_aosoa.hpp" />
+    <ClInclude Include="metric_soa.hpp" />
     <ClInclude Include="ml_coordinate.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
