@@ -2,7 +2,7 @@
 #include <random>
 #include <vector>
 
-#include "metric_aos.hpp" 
+#include "metrics_aos.hpp" 
 #include "dataset_aos.hpp"
 
 using namespace fc;
