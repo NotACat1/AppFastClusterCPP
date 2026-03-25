@@ -25,6 +25,9 @@
     <Filter Include="Исходные файлы\benchmarks">
       <UniqueIdentifier>{24d27593-dc7e-4c24-8434-d733fc17f8d4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Исходные файлы\benchmarks\metrics">
+      <UniqueIdentifier>{f4be6140-7458-43d0-af53-752abfb9a5f4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -32,6 +35,15 @@
     </ClCompile>
     <ClCompile Include="bench_structures.cpp">
       <Filter>Исходные файлы\benchmarks</Filter>
+    </ClCompile>
+    <ClCompile Include="benc_aos.cpp">
+      <Filter>Исходные файлы\benchmarks\metrics</Filter>
+    </ClCompile>
+    <ClCompile Include="benc_aosoa.cpp">
+      <Filter>Исходные файлы\benchmarks\metrics</Filter>
+    </ClCompile>
+    <ClCompile Include="benc_soa.cpp">
+      <Filter>Исходные файлы\benchmarks\metrics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -49,6 +61,15 @@
     </ClInclude>
     <ClInclude Include="dataset_soa.hpp">
       <Filter>Файлы заголовков\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="metric_aos.hpp">
+      <Filter>Файлы заголовков\metrics</Filter>
+    </ClInclude>
+    <ClInclude Include="metric_soa.hpp">
+      <Filter>Файлы заголовков\metrics</Filter>
+    </ClInclude>
+    <ClInclude Include="metric_aosoa.hpp">
+      <Filter>Файлы заголовков\metrics</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

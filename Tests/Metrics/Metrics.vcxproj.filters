@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="tests_aosoa.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="tests_aos.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="tests_soa.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="tests">
+      <UniqueIdentifier>{d6e2eb93-a50a-4001-9265-e0ab6f717ed0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
