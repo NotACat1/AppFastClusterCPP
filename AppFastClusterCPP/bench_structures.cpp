@@ -2,6 +2,7 @@
 #include "dataset_aos.hpp"
 #include "dataset_soa.hpp"
 #include "dataset_aosoa.hpp"
+#include "kd_tree_flat.hpp"
 
 // Scale factor for the performance tests to ensure data exceeds L1/L2 cache thresholds
 const std::size_t num_points = 100'000;
@@ -71,3 +72,22 @@ static void BM_SoA_Sum(benchmark::State& state) {
     }
 }
 BENCHMARK(BM_SoA_Sum);
+
+/**
+ * @brief Test for KDTreeFlat (Linear Node Traversal).
+ * We check how fast we can just "run through" a flat tree.
+ * Thanks to alignas(16), nodes fit into the cache lines very tightly.
+ */
+static void BM_KDTree_Flat_LinearScan(benchmark::State& state) {
+    fc::KDTreeFlat tree;
+    tree.nodes.resize(num_points, { 1.0f, 0, -1, -1, 0 });
+
+    for (auto _ : state) {
+        float dummy_val = 0;
+        for (const auto& node : tree.nodes) {
+            dummy_val += node.split_val;
+        }
+        benchmark::DoNotOptimize(dummy_val);
+    }
+}
+BENCHMARK(BM_KDTree_Flat_LinearScan);
