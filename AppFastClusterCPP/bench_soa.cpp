@@ -3,7 +3,7 @@
 #include <vector>
 #include <array>
 
-#include "metric_soa.hpp"
+#include "metrics_soa.hpp"
 #include "dataset_soa.hpp"
 
 using namespace fc;

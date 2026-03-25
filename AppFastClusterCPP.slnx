@@ -4,6 +4,7 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Tests/">
+    <Project Path="Tests/Algorithms/Algorithms.vcxproj" Id="443120bd-bb9b-4bb1-b20f-53f3ce739dd3" />
     <Project Path="Tests/Metrics/Metrics.vcxproj" Id="cc9e1593-6554-4256-84b4-1ef68200c503" />
     <Project Path="Tests/Structures/Structures.vcxproj" Id="5d51b967-2f12-47a4-ac29-3b2a01523ecd" />
   </Folder>

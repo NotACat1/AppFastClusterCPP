@@ -1,6 +1,6 @@
 #include "pch.h"
 #include <gtest/gtest.h>
-#include "../../AppFastClusterCPP/metric_aos.hpp"
+#include "../../AppFastClusterCPP/metrics_aos.hpp"
 
 namespace fc::metrics::test {
 

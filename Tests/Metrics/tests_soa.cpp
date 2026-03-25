@@ -3,7 +3,7 @@
 #include <array>
 #include <vector>
 #include <cmath>
-#include "../../AppFastClusterCPP/metric_soa.hpp"
+#include "../../AppFastClusterCPP/metrics_soa.hpp"
 
 namespace fc::metrics::test {
 
