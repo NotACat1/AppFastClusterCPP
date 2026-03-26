@@ -137,10 +137,33 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="bench_radius_search_aos.cpp" />
+    <ClCompile Include="bench_aosoa.cpp" />
+    <ClCompile Include="bench_aos.cpp" />
+    <ClCompile Include="bench_radius_search_aosoa.cpp" />
+    <ClCompile Include="bench_radius_search_kdtree.cpp" />
+    <ClCompile Include="bench_radius_search_kdtree_single.cpp" />
+    <ClCompile Include="bench_radius_search_soa.cpp" />
+    <ClCompile Include="bench_soa.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="bench_structures.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="dataset_aos.hpp" />
+    <ClInclude Include="dataset_aosoa.hpp" />
+    <ClInclude Include="dataset_soa.hpp" />
     <ClInclude Include="DebugConfig.h" />
+    <ClInclude Include="kd_tree_builder.hpp" />
+    <ClInclude Include="kd_tree_flat.hpp" />
+    <ClInclude Include="metrics_aos.hpp" />
+    <ClInclude Include="metrics_aosoa.hpp" />
+    <ClInclude Include="metrics_soa.hpp" />
+    <ClInclude Include="ml_coordinate.hpp" />
+    <ClInclude Include="radius_search_aos.hpp" />
+    <ClInclude Include="radius_search_aosoa.hpp" />
+    <ClInclude Include="radius_search_kdtree.hpp" />
+    <ClInclude Include="radius_search_kdtree_single.hpp" />
+    <ClInclude Include="radius_search_soa.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

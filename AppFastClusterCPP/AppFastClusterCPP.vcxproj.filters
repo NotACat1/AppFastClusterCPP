@@ -22,24 +22,93 @@
     <Filter Include="Файлы заголовков\algorithms">
       <UniqueIdentifier>{9b78ac11-6115-4b27-8f7e-9da7c4413efb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Исходные файлы\metrics">
-      <UniqueIdentifier>{8196f8d7-7609-4f7f-9cbd-eb647e3e23ed}</UniqueIdentifier>
+    <Filter Include="Исходные файлы\benchmarks">
+      <UniqueIdentifier>{24d27593-dc7e-4c24-8434-d733fc17f8d4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Исходные файлы\algorithms">
-      <UniqueIdentifier>{017fb8ac-ea7a-4920-bedd-44f99df4d5dd}</UniqueIdentifier>
+    <Filter Include="Исходные файлы\benchmarks\metrics">
+      <UniqueIdentifier>{f4be6140-7458-43d0-af53-752abfb9a5f4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Исходные файлы\structures">
-      <UniqueIdentifier>{b653dbda-c241-4a14-9811-bbd291620478}</UniqueIdentifier>
+    <Filter Include="Исходные файлы\benchmarks\algorithms">
+      <UniqueIdentifier>{7ea1f64e-d989-4e9b-82b4-f6db7769e470}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="bench_structures.cpp">
+      <Filter>Исходные файлы\benchmarks</Filter>
+    </ClCompile>
+    <ClCompile Include="bench_aos.cpp">
+      <Filter>Исходные файлы\benchmarks\metrics</Filter>
+    </ClCompile>
+    <ClCompile Include="bench_aosoa.cpp">
+      <Filter>Исходные файлы\benchmarks\metrics</Filter>
+    </ClCompile>
+    <ClCompile Include="bench_soa.cpp">
+      <Filter>Исходные файлы\benchmarks\metrics</Filter>
+    </ClCompile>
+    <ClCompile Include="bench_radius_search_aos.cpp">
+      <Filter>Исходные файлы\benchmarks\algorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="bench_radius_search_aosoa.cpp">
+      <Filter>Исходные файлы\benchmarks\algorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="bench_radius_search_kdtree.cpp">
+      <Filter>Исходные файлы\benchmarks\algorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="bench_radius_search_kdtree_single.cpp">
+      <Filter>Исходные файлы\benchmarks\algorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="bench_radius_search_soa.cpp">
+      <Filter>Исходные файлы\benchmarks\algorithms</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DebugConfig.h">
       <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="ml_coordinate.hpp">
+      <Filter>Файлы заголовков\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset_aos.hpp">
+      <Filter>Файлы заголовков\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset_aosoa.hpp">
+      <Filter>Файлы заголовков\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="dataset_soa.hpp">
+      <Filter>Файлы заголовков\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="metrics_aos.hpp">
+      <Filter>Файлы заголовков\metrics</Filter>
+    </ClInclude>
+    <ClInclude Include="metrics_soa.hpp">
+      <Filter>Файлы заголовков\metrics</Filter>
+    </ClInclude>
+    <ClInclude Include="metrics_aosoa.hpp">
+      <Filter>Файлы заголовков\metrics</Filter>
+    </ClInclude>
+    <ClInclude Include="radius_search_aos.hpp">
+      <Filter>Файлы заголовков\algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="radius_search_soa.hpp">
+      <Filter>Файлы заголовков\algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="radius_search_aosoa.hpp">
+      <Filter>Файлы заголовков\algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="radius_search_kdtree.hpp">
+      <Filter>Файлы заголовков\algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="radius_search_kdtree_single.hpp">
+      <Filter>Файлы заголовков\algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="kd_tree_builder.hpp">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="kd_tree_flat.hpp">
+      <Filter>Файлы заголовков\structures</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

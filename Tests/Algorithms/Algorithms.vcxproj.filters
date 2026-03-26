@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="test_radius_search_aos.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="test_radius_search_aosoa.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="test_radius_search_kdtree.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="test_radius_search_soa.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="test_radius_search_kdtree_single.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="tests">
+      <UniqueIdentifier>{96fc6875-9e2b-49ba-8b92-a986148117a4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
