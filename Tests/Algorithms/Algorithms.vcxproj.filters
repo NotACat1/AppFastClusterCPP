@@ -17,6 +17,12 @@
     <ClCompile Include="test_radius_search_kdtree_single.cpp">
       <Filter>tests</Filter>
     </ClCompile>
+    <ClCompile Include="test_dbscan.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="test_kmeans.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -25,5 +31,8 @@
     <Filter Include="tests">
       <UniqueIdentifier>{96fc6875-9e2b-49ba-8b92-a986148117a4}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

@@ -107,6 +107,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="test_dbscan.cpp" />
+    <ClCompile Include="test_kmeans.cpp" />
     <ClCompile Include="test_radius_search_aos.cpp" />
     <ClCompile Include="test_radius_search_aosoa.cpp" />
     <ClCompile Include="test_radius_search_kdtree.cpp" />
