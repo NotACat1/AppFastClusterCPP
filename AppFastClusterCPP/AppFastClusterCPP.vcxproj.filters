@@ -19,9 +19,6 @@
     <Filter Include="Файлы заголовков\metrics">
       <UniqueIdentifier>{32891466-da67-4d48-b986-0cfdb87a466c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Файлы заголовков\algorithms">
-      <UniqueIdentifier>{9b78ac11-6115-4b27-8f7e-9da7c4413efb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Исходные файлы\benchmarks">
       <UniqueIdentifier>{24d27593-dc7e-4c24-8434-d733fc17f8d4}</UniqueIdentifier>
     </Filter>
@@ -29,7 +26,10 @@
       <UniqueIdentifier>{f4be6140-7458-43d0-af53-752abfb9a5f4}</UniqueIdentifier>
     </Filter>
     <Filter Include="Исходные файлы\benchmarks\algorithms">
-      <UniqueIdentifier>{7ea1f64e-d989-4e9b-82b4-f6db7769e470}</UniqueIdentifier>
+      <UniqueIdentifier>{4b45aaa0-edfa-4151-822c-ea5c3a5b6f98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\algorithms">
+      <UniqueIdentifier>{503983d5-84e4-4c7a-8207-50fe9a55ef96}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -63,6 +63,12 @@
     <ClCompile Include="bench_radius_search_soa.cpp">
       <Filter>Исходные файлы\benchmarks\algorithms</Filter>
     </ClCompile>
+    <ClCompile Include="bench_dbscan.cpp">
+      <Filter>Исходные файлы\benchmarks\algorithms</Filter>
+    </ClCompile>
+    <ClCompile Include="bench_kmeans.cpp">
+      <Filter>Исходные файлы\benchmarks\algorithms</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DebugConfig.h">
@@ -89,10 +95,13 @@
     <ClInclude Include="metrics_aosoa.hpp">
       <Filter>Файлы заголовков\metrics</Filter>
     </ClInclude>
-    <ClInclude Include="radius_search_aos.hpp">
-      <Filter>Файлы заголовков\algorithms</Filter>
+    <ClInclude Include="kd_tree_builder.hpp">
+      <Filter>Исходные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="radius_search_soa.hpp">
+    <ClInclude Include="kd_tree_flat.hpp">
+      <Filter>Файлы заголовков\structures</Filter>
+    </ClInclude>
+    <ClInclude Include="radius_search_aos.hpp">
       <Filter>Файлы заголовков\algorithms</Filter>
     </ClInclude>
     <ClInclude Include="radius_search_aosoa.hpp">
@@ -104,11 +113,14 @@
     <ClInclude Include="radius_search_kdtree_single.hpp">
       <Filter>Файлы заголовков\algorithms</Filter>
     </ClInclude>
-    <ClInclude Include="kd_tree_builder.hpp">
-      <Filter>Исходные файлы</Filter>
+    <ClInclude Include="radius_search_soa.hpp">
+      <Filter>Файлы заголовков\algorithms</Filter>
     </ClInclude>
-    <ClInclude Include="kd_tree_flat.hpp">
-      <Filter>Файлы заголовков\structures</Filter>
+    <ClInclude Include="dbscan.hpp">
+      <Filter>Файлы заголовков\algorithms</Filter>
+    </ClInclude>
+    <ClInclude Include="kmeans.hpp">
+      <Filter>Файлы заголовков\algorithms</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

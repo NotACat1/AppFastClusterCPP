@@ -1,34 +1,31 @@
 #include <benchmark/benchmark.h>
+#include <omp.h>
 #include <random>
 #include <vector>
-#include <omp.h>
-
-// Project-specific headers for SoA data structures and algorithms
 #include "dataset_soa.hpp"
 #include "metrics_soa.hpp"
 #include "radius_search_soa.hpp"
 
 namespace {
-
     using namespace fc;
     using namespace fc::metrics;
     using namespace fc::algorithms;
 
     /**
-     * @brief Utility for generating a synthetic Structure-of-Arrays (SoA) dataset.
-     * * Uses a fixed seed to ensure deterministic results across benchmark runs.
-     * Pre-allocates memory for each axis to minimize allocation overhead during setup.
+     * @brief Generates a synthetic dataset in Structure of Arrays (SoA) format.
+     * * SoA layout is utilized here to maximize SIMD vectorization potential
+     * by keeping coordinate components contiguous in memory.
+     * * @tparam T Coordinate scalar type.
+     * @tparam Dim Dimensionality of the point space.
+     * @param n Number of points to generate.
+     * @return DatasetSoA containing randomized point data.
      */
     template <typename T, std::size_t Dim>
-    DatasetSoA<T, Dim> create_random_soa_dataset(std::size_t n) {
+    DatasetSoA<T, Dim> create_random_dataset_soa(std::size_t n) {
         DatasetSoA<T, Dim> ds;
+        for (auto& axis : ds.axes) axis.reserve(n);
 
-        // Ensure memory is contiguous and pre-allocated for SoA layout
-        for (std::size_t d = 0; d < Dim; ++d) {
-            ds.axes[d].reserve(n);
-        }
-
-        // Fixed seed for reproducibility across different hardware/runs
+        // Fixed seed ensures deterministic data distribution across benchmark runs
         std::mt19937 gen(42);
         std::uniform_real_distribution<T> dis(-100.0f, 100.0f);
 
@@ -41,100 +38,69 @@ namespace {
     }
 
     /**
-     * @brief Core benchmark template for radius search performance analysis.
-     * * Evaluates the brute-force SoA search across different metrics,
-     * dimensions, and thread counts.
-     * * @tparam Policy The distance metric policy (e.g., SquaredEuclideanPolicy).
-     * @tparam Dim The spatial dimensionality of the dataset.
+     * @brief Benchmark fixture for Brute-Force Radius Search using SoA layout.
+     * * This test evaluates the performance of exhaustive search, scaling with
+     * respect to both point density and available CPU threads via OpenMP.
+     * * @tparam Policy The distance metric policy (e.g., SquaredEuclideanSoA).
+     * @tparam Dim Space dimensionality.
      */
     template <typename Policy, std::size_t Dim>
-    void BM_RadiusSearch_SoA(benchmark::State& state) {
+    void BM_RadiusSearch_SoA_BruteForce(benchmark::State& state) {
         const std::size_t num_points = state.range(0);
-        const int num_threads = state.range(1);
+        const int num_threads = static_cast<int>(state.range(1));
 
-        // Configure OpenMP runtime for the current benchmark iteration
+        // Configure OpenMP thread pool for the parallel search implementation
         omp_set_num_threads(num_threads);
+        auto dataset = create_random_dataset_soa<float, Dim>(num_points);
 
-        auto dataset = create_random_soa_dataset<float, Dim>(num_points);
-
-        // Define a query point at the origin
+        // Define a static query point and search radius
         std::array<float, Dim> query;
         query.fill(0.0f);
-
-        float radius = 10.0f;
+        const float radius = 10.0f;
 
         for (auto _ : state) {
-            auto indices = radius_search_brute_force_soa<float, Dim, Policy>(
-                dataset, query, radius
-            );
-            // Prevent compiler from optimizing away the search operation
+            auto indices = radius_search_brute_force_soa<float, Dim, Policy>(dataset, query, radius);
+            // Prevent compiler from eliding the search operation
             benchmark::DoNotOptimize(indices);
         }
 
-        // Throughput reporting: total items (points) processed per second
+        // Calculate throughput and effective memory bandwidth usage
         state.SetItemsProcessed(state.iterations() * num_points);
-        // Bandwidth reporting: total bytes read from axis arrays
         state.SetBytesProcessed(state.iterations() * num_points * Dim * sizeof(float));
 
-        // Metadata counters for post-run analysis
+        // Metadata for performance analysis
         state.counters["Threads"] = num_threads;
         state.counters["Dim"] = Dim;
     }
-
-} // namespace
-
-// --- Benchmark Registration ---
-
-/**
- * 1. Metric Policy Comparison
- * Fixed dataset size (100k points), single-threaded execution.
- * Purpose: Measure the baseline efficiency of different distance calculations
- * and evaluate the compiler's ability to apply SIMD auto-vectorization.
- */
-BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA, SquaredEuclideanPolicy, 3)
-->Args({ 100'000, 1 })->Unit(benchmark::kMicrosecond);
-
-BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA, EuclideanPolicy, 3)
-->Args({ 100'000, 1 })->Unit(benchmark::kMicrosecond);
-
-BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA, ManhattanPolicy, 3)
-->Args({ 100'000, 1 })->Unit(benchmark::kMicrosecond);
-
-BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA, ChebyshevPolicy, 3)
-->Args({ 100'000, 1 })->Unit(benchmark::kMicrosecond);
-
-/**
- * 2. Multi-threaded Scalability (OpenMP)
- * Dataset size: 1M points, 3D space.
- * Purpose: Analyze parallel efficiency and speedup when scaling from 1 to 8 threads.
- */
-BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA, SquaredEuclideanPolicy, 3)
-->Args({ 1'000'000, 1 })
-->Args({ 1'000'000, 2 })
-->Args({ 1'000'000, 4 })
-->Args({ 1'000'000, 8 })
-->Unit(benchmark::kMillisecond);
-
-/**
- * 3. Dimensionality Scaling Impact
- * Fixed dataset size (100k points), utilizing maximum hardware concurrency.
- * Purpose: Observe how high-dimensional data affects cache locality.
- * As dimensionality increases, "jumping" between large axis arrays may lead to
- * increased cache misses and memory bandwidth saturation.
- */
-static void DimArguments(benchmark::Benchmark* b) {
-    int max_threads = omp_get_max_threads();
-    b->Args({ 100'000, max_threads });
 }
 
-BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA, SquaredEuclideanPolicy, 2)
-->Apply(DimArguments)->Unit(benchmark::kMicrosecond);
+// --- Registration and Configuration ---
 
-BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA, SquaredEuclideanPolicy, 3)
-->Apply(DimArguments)->Unit(benchmark::kMicrosecond);
+/**
+ * @brief Helper to generate argument pairs for point count and thread scaling.
+ * * Compares single-threaded baseline performance against the system's maximum hardware concurrency.
+ */
+static void SoAArguments(benchmark::Benchmark* b) {
+    int max_threads = omp_get_max_threads();
+    for (int t : {1, max_threads}) {
+        b->Args({ 100'000, t });
+    }
+}
 
-BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA, SquaredEuclideanPolicy, 16)
-->Apply(DimArguments)->Unit(benchmark::kMicrosecond);
+// Standard metric benchmarks
+BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA_BruteForce, SquaredEuclideanSoA, 3)
+->Apply(SoAArguments)
+->Unit(benchmark::kMicrosecond);
 
-BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA, SquaredEuclideanPolicy, 64)
-->Apply(DimArguments)->Unit(benchmark::kMicrosecond);
+BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA_BruteForce, ManhattanSoA, 3)
+->Apply(SoAArguments)
+->Unit(benchmark::kMicrosecond);
+
+/**
+ * @section Stress Test
+ * Benchmarking high-dimensional space performance (e.g., 64D) to observe
+ * the impact of memory bandwidth bottlenecks on brute-force execution.
+ */
+BENCHMARK_TEMPLATE(BM_RadiusSearch_SoA_BruteForce, SquaredEuclideanSoA, 64)
+->Args({ 100'000, 8 })
+->Unit(benchmark::kMillisecond);

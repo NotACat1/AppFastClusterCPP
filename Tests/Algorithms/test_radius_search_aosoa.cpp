@@ -43,7 +43,7 @@ namespace fc::algorithms::test {
 
         // Search within radius 0.55
         float radius = 0.55f;
-        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::SquaredEuclidean>(ds, query, radius * radius);
+        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::SquaredEuclideanAoSoA>(ds, query, radius * radius);
 
         std::sort(indices.begin(), indices.end());
         std::vector<std::size_t> expected = { 0, 1, 2, 3, 4 };
@@ -64,7 +64,7 @@ namespace fc::algorithms::test {
 
         // The block has 8 slots; 6 are uninitialized. 
         // If 'points_in_block' is handled incorrectly, the search might return > 2 results.
-        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::Manhattan>(ds, query, 100.0f);
+        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::ManhattanAoSoA>(ds, query, 100.0f);
 
         EXPECT_EQ(indices.size(), 2);
     }
@@ -80,7 +80,7 @@ namespace fc::algorithms::test {
         };
         auto ds = create_dataset(points);
 
-        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::Manhattan>(ds, query, 2.6f);
+        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::ManhattanAoSoA>(ds, query, 2.6f);
 
         ASSERT_EQ(indices.size(), 1);
         EXPECT_EQ(indices[0], 1);
@@ -97,7 +97,7 @@ namespace fc::algorithms::test {
         };
         auto ds = create_dataset(points);
 
-        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::Chebyshev>(ds, query, 3.0f);
+        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::ChebyshevAoSoA>(ds, query, 3.0f);
 
         ASSERT_EQ(indices.size(), 1);
         EXPECT_EQ(indices[0], 1);
@@ -115,7 +115,7 @@ namespace fc::algorithms::test {
         auto ds = create_dataset(points);
 
         // Radius 1.8. If the optimization (comparing radius^2) is correct, the point should be found.
-        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::Euclidean>(ds, query, 1.8f);
+        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::EuclideanAoSoA>(ds, query, 1.8f);
 
         EXPECT_EQ(indices.size(), 1);
     }
@@ -133,7 +133,7 @@ namespace fc::algorithms::test {
         auto ds = create_dataset(points);
 
         // This search should return exactly 101 points (0.0 to 0.1 inclusive)
-        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::SquaredEuclidean>(ds, query, 0.1f * 0.1f);
+        auto indices = fc::algorithms::radius_search_brute_force_aosoa<fc::metrics::SquaredEuclideanAoSoA>(ds, query, 0.1f * 0.1f);
 
         // Check for consistency; common race conditions would result in significant deviations.
         EXPECT_TRUE(indices.size() >= 100 && indices.size() <= 101);
