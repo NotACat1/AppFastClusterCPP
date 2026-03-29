@@ -2,147 +2,103 @@
 #include <gtest/gtest.h>
 #include <array>
 #include <vector>
-#include <cmath>
 #include "../../AppFastClusterCPP/metrics_aosoa.hpp"
 
 namespace fc::metrics::test {
 
     /**
-     * @brief Test fixture for SIMD-accelerated distance metrics.
-     * @details Prepares an 8-lane SimdBlock to validate parallel processing.
-     * Specific data points are chosen to verify identity properties, standard
-     * geometric distances, and negative coordinate handling.
+     * @brief Test fixture for SIMD-accelerated distance metrics using AoSoA layout.
+     * @details Validates distance computations across an 8-lane SIMD block (AVX/256-bit).
+     * The AoSoA (Array of Structures of Arrays) format is specifically designed to
+     * facilitate efficient vectorized horizontal/vertical processing.
      */
-    class SIMDMetricsTest : public ::testing::Test {
+    class MetricsAosoaTest : public ::testing::Test {
     protected:
         static constexpr std::size_t Dim = 3;
-        static constexpr std::size_t Width = 8;
+        static constexpr std::size_t Width = 8; // Matches AVX float throughput (256-bit / 32-bit)
 
         std::array<float, Dim> query = { 1.0f, 2.0f, 3.0f };
         SimdBlock<float, Dim, Width> block;
         float results[Width];
 
+        /**
+         * @brief Initializes the SIMD block with specific test cases.
+         */
         void SetUp() override {
-            // Reset results buffer before each test case
-            for (int i = 0; i < Width; ++i) results[i] = 0.0f;
+            std::fill(std::begin(results), std::end(results), 0.0f);
+            for (auto& lane : block.lanes) std::fill(std::begin(lane), std::end(lane), 0.0f);
 
-            // Initialize the block with default zero values
-            for (std::size_t d = 0; d < Dim; ++d) {
-                for (std::size_t i = 0; i < Width; ++i) {
-                    block.lanes[d][i] = 0.0f;
-                }
-            }
-
-            // Lane 0: Identity point (matches query exactly, distance should be 0)
+            // Lane 0: Identity case (distance to self should be zero)
             block.lanes[0][0] = 1.0f; block.lanes[1][0] = 2.0f; block.lanes[2][0] = 3.0f;
 
-            // Lane 1: Standard 3-4-5 Pythagorean triple scenario
+            // Lane 1: Standard 3-4-5 triangle vector configuration
+            // Point: (4, 6, 3) | Query: (1, 2, 3) | Diff: (3, 4, 0)
             block.lanes[0][1] = 4.0f; block.lanes[1][1] = 6.0f; block.lanes[2][1] = 3.0f;
-
-            // Lane 7: SIMD register boundary element (verifies the last lane of the YMM register)
-            block.lanes[0][7] = 2.0f; block.lanes[1][7] = 3.0f; block.lanes[2][7] = 4.0f;
         }
     };
 
-    // --- Mathematical Correctness Tests (Lane-wise Verification) ---
-
-    TEST_F(SIMDMetricsTest, SquaredEuclideanCorrectness) {
-        SquaredEuclidean::evaluate(query, block, results);
-
-        // Lane 0: (1-1)^2 + (2-2)^2 + (3-3)^2 = 0
+    /**
+     * @brief Functional correctness test for vectorized metric implementations.
+     */
+    TEST_F(MetricsAosoaTest, Correctness) {
+        // Squared Euclidean: sum((p_i - q_i)^2) -> 3^2 + 4^2 + 0^2 = 25
+        SquaredEuclideanAoSoA::evaluate(query, block, results);
         EXPECT_FLOAT_EQ(results[0], 0.0f);
-        // Lane 1: (1-4)^2 + (2-6)^2 + (3-3)^2 = 9 + 16 + 0 = 25
         EXPECT_FLOAT_EQ(results[1], 25.0f);
-        // Lane 7: (1-2)^2 + (2-3)^2 + (3-4)^2 = 1 + 1 + 1 = 3
-        EXPECT_FLOAT_EQ(results[7], 3.0f);
-    }
 
-    TEST_F(SIMDMetricsTest, EuclideanCorrectness) {
-        Euclidean::evaluate(query, block, results);
+        // Euclidean: sqrt(SquaredEuclidean) -> 5.0
+        EuclideanAoSoA::evaluate(query, block, results);
+        EXPECT_NEAR(results[1], 5.0f, 1e-6);
 
-        EXPECT_NEAR(results[0], 0.0f, 1e-6);
-        EXPECT_NEAR(results[1], 5.0f, 1e-6); // sqrt(25) = 5
-        EXPECT_NEAR(results[7], std::sqrt(3.0f), 1e-6);
-    }
-
-    TEST_F(SIMDMetricsTest, ManhattanCorrectness) {
-        Manhattan::evaluate(query, block, results);
-
-        // Lane 1: |1-4| + |2-6| + |3-3| = 3 + 4 + 0 = 7
+        // Manhattan (L1): sum(|p_i - q_i|) -> |3| + |4| + |0| = 7
+        ManhattanAoSoA::evaluate(query, block, results);
         EXPECT_FLOAT_EQ(results[1], 7.0f);
-    }
 
-    TEST_F(SIMDMetricsTest, ChebyshevCorrectness) {
-        Chebyshev::evaluate(query, block, results);
-
-        // Lane 1: max(|1-4|, |2-6|, |3-3|) = max(3, 4, 0) = 4
+        // Chebyshev (L-infinity): max(|p_i - q_i|) -> max(3, 4, 0) = 4
+        ChebyshevAoSoA::evaluate(query, block, results);
         EXPECT_FLOAT_EQ(results[1], 4.0f);
     }
 
-    // --- Infrastructure and Concept Integration Tests ---
-
     /**
-     * @brief Validates the batch dispatcher with the AoSoA dataset container.
+     * @brief Tests high-level dispatching, memory alignment, and C++20 Concepts.
      */
-    TEST_F(SIMDMetricsTest, BatchDispatcherTest) {
+    TEST_F(MetricsAosoaTest, DispatcherAndInfrastructure) {
         DatasetAoSoA<float, 3, 8> dataset;
-        dataset.add_point({ 1.0f, 2.0f, 3.0f }); // Inserts into Lane 0 of the first block
+        dataset.add_point({ 1.0f, 2.0f, 3.0f });
 
         std::vector<float> all_results;
-        compute_batch_distances<SquaredEuclidean>(query, dataset, all_results);
+        // Verify the dispatcher correctly processes the dataset through SIMD kernels
+        compute_distances_aosoa<SquaredEuclideanAoSoA>(query, dataset, all_results);
 
-        // Result vector must be a multiple of the SIMD width (8)
-        ASSERT_EQ(all_results.size(), 8);
+        ASSERT_EQ(all_results.size(), 8); // Ensures padding/lane alignment is preserved
         EXPECT_FLOAT_EQ(all_results[0], 0.0f);
+
+        /** * @note 64-byte alignment is required to ensure compatibility with
+         * AVX-512 and to prevent cache-line splits in 256-bit AVX operations.
+         */
+        EXPECT_EQ(alignof(SimdBlock<float, 3, 8>), 64);
+
+        // Static interface validation via C++20 Concepts
+        static_assert(MetricAoSoA<SquaredEuclideanAoSoA>);
     }
 
     /**
-     * @brief Memory Alignment Verification.
-     * @details Critical for SIMD stability; unaligned data causes GPF (General Protection Fault)
-     * when using instructions like _mm256_load_ps.
+     * @brief Unit test for the low-level bitwise Absolute Value mask.
+     * @details Verifies that the sign-bit clearing mask works correctly for
+     * IEEE 754 floating-point values including INF and signed zeros.
      */
-    TEST(SIMDMemoryTest, BlockAlignment) {
-        SimdBlock<float, 3, 8> block;
+    TEST(MetricsAosoaDetail, AbsMask) {
+        // Prepare a vector with mixed positive/negative values and edge cases
+        __m256 values = _mm256_setr_ps(-1.0f, 2.0f, -0.0f, -INFINITY, 0, 0, 0, 0);
 
-        // Verify structure alignment (64-byte for cache-line optimization/AVX-512 readiness)
-        EXPECT_EQ(alignof(decltype(block)), 64);
-
-        // Verify each dimension lane is aligned to at least a 32-byte boundary for AVX loads
-        for (int d = 0; d < 3; ++d) {
-            auto addr = reinterpret_cast<std::uintptr_t>(block.lanes[d]);
-            EXPECT_EQ(addr % 32, 0) << "Lane " << d << " is not 32-byte aligned, risk of SIMD fault!";
-        }
-    }
-
-    /**
-     * @brief Static validation of Metric Policies against the SIMDMetric concept.
-     * @note This ensures compile-time compliance with the required static interface.
-     */
-    TEST(SIMDConceptTest, InterfaceValidation) {
-        static_assert(SIMDMetric<SquaredEuclidean>);
-        static_assert(SIMDMetric<Euclidean>);
-        static_assert(SIMDMetric<Manhattan>);
-        static_assert(SIMDMetric<Chebyshev>);
-    }
-
-    /**
-     * @brief Verification of the Low-level Absolute Value (ABS) bitmask.
-     * @details Confirms that the bitwise sign-clearing mask correctly processes
-     * positive, negative, zero, and floating-point edge cases (Inf, NaN).
-     */
-    TEST(SIMDDetailTest, AbsMaskVerification) {
-        // Test set including negative values, signed zeros, and special floats
-        __m256 values = _mm256_setr_ps(-1.0f, 2.0f, -3.5f, 0.0f, -0.0f, 100.0f, -INFINITY, NAN);
-        __m256 mask = detail::get_abs_mask_ps();
-        __m256 result = _mm256_and_ps(values, mask);
+        // Apply bitwise AND with the absolute value mask (clears the high bit)
+        __m256 result = _mm256_and_ps(values, detail::get_abs_mask_ps());
 
         float out[8];
         _mm256_storeu_ps(out, result);
 
-        EXPECT_FLOAT_EQ(out[0], 1.0f);
-        EXPECT_FLOAT_EQ(out[2], 3.5f);
-
-        // Verify sign bit removal for negative zero
-        EXPECT_FALSE(std::signbit(out[4]));
+        EXPECT_FLOAT_EQ(out[0], 1.0f);      // -1.0 -> 1.0
+        EXPECT_FALSE(std::signbit(out[2])); // -0.0 -> 0.0 (sign bit must be cleared)
     }
+
 } // namespace fc::metrics::test

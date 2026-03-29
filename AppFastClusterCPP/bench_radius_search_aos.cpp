@@ -1,115 +1,97 @@
 #include <benchmark/benchmark.h>
 #include <random>
 #include <vector>
-
-// Project-specific headers for Array-of-Structures (AoS) layout and distance metrics
 #include "dataset_aos.hpp"
 #include "metrics_aos.hpp"
-#include "radius_search_aos.hpp" 
+#include "radius_search_aos.hpp"
 
 namespace {
+    using namespace fc;
+    using namespace fc::metrics;
+    using namespace fc::algorithms;
 
     /**
-     * @brief Utility function to generate a synthetic Array-of-Structures (AoS) dataset.
-     * * Ensures contiguous memory allocation and reproducible data distribution
-     * for consistent baseline benchmarking.
+     * @brief Factory function for generating synthetic Array-of-Structures (AoS) datasets.
+     * * Uses a deterministic random number generator (fixed seed) to ensure benchmark
+     * reproducibility across different hardware environments and test runs.
      * * @tparam T Coordinate scalar type (e.g., float, double).
      * @tparam Dim Spatial dimensionality.
-     * @param n Total number of points to generate.
-     * @return fc::DatasetAoS<T, Dim> The generated AoS dataset.
+     * @param n Number of points to generate.
+     * @return DatasetAoS<T, Dim> A populated dataset within the range [-100, 100].
      */
     template <typename T, std::size_t Dim>
-    fc::DatasetAoS<T, Dim> create_random_dataset(std::size_t n) {
-        fc::DatasetAoS<T, Dim> ds;
-        ds.reserve(n);
-
-        // Deterministic seeding to guarantee reproducible spatial distributions across runs
+    DatasetAoS<T, Dim> create_random_dataset(std::size_t n) {
+        DatasetAoS<T, Dim> ds(n);
+        // Fixed seed ensures that data distribution does not change between runs
         std::mt19937 gen(42);
-        std::uniform_real_distribution<T> dis(-100.0, 100.0);
+        std::uniform_real_distribution<T> dis(static_cast<T>(-100.0), static_cast<T>(100.0));
 
-        for (std::size_t i = 0; i < n; ++i) {
-            std::array<T, Dim> coords;
-            for (std::size_t d = 0; d < Dim; ++d) coords[d] = dis(gen);
-            ds.push_back({ coords });
+        for (auto& point : ds) {
+            for (std::size_t d = 0; d < Dim; ++d) {
+                point[d] = dis(gen);
+            }
         }
         return ds;
     }
 
     /**
-     * @brief Core benchmark template evaluating brute-force radius search performance.
-     * * Measures the baseline throughput of sequential, unoptimized AoS traversal.
-     * * @tparam Metric Distance calculation policy.
-     * @tparam Dim Spatial dimensionality.
+     * @brief Benchmark fixture for brute-force radius search using AoS layout.
+     * * Measures the performance of a linear scan to find neighbors within a sphere.
+     * This benchmark captures the overhead of distance calculation, point iteration,
+     * and potential dynamic memory allocation within the search results.
+     * * @tparam Metric Distance calculation policy (e.g., EuclideanAoS).
+     * @tparam Dim Spatial dimensionality of the dataset.
      */
     template <typename Metric, std::size_t Dim>
-    void BM_RadiusSearch_BruteForce(benchmark::State& state) {
-        const std::size_t num_points = state.range(0);
+    void BM_RadiusSearch_AoS_BruteForce(benchmark::State& state) {
+        const std::size_t num_points = static_cast<std::size_t>(state.range(0));
         auto dataset = create_random_dataset<float, Dim>(num_points);
 
-        // Place the query point at the origin to standardize distance calculations
-        fc::PointAoS<float, Dim> query;
+        // Standardized query point positioned at the origin
+        PointAoS<float, Dim> query;
         query.coords.fill(0.0f);
-
-        // Tuning the search radius to return approximately 1% of the dataset.
-        // This prevents dynamic memory allocation overhead (from resizing the results vector) 
-        // from skewing the actual algorithmic execution time measurements.
         float radius = 10.0f;
 
+        // Main benchmark hot loop
         for (auto _ : state) {
-            auto indices = fc::algorithms::radius_search_brute_force_aos<float, Dim, Metric>(
-                dataset, query, radius
-            );
-            // Force the compiler to materialize the result to prevent dead-code elimination
+            auto indices = radius_search_brute_force_aos<float, Dim, Metric>(dataset, query, radius);
+
+            // Prevent the compiler from optimizing away the result vector (Dead Code Elimination)
             benchmark::DoNotOptimize(indices);
         }
 
-        // Throughput metrics: total points processed per second
+        /**
+         * Report hardware-level metrics:
+         * ItemsProcessed: Total points scanned across all iterations.
+         * BytesProcessed: Cumulative memory throughput for the search operation.
+         */
         state.SetItemsProcessed(state.iterations() * num_points);
+        state.SetBytesProcessed(state.iterations() * num_points * sizeof(PointAoS<float, Dim>));
 
-        // Memory bandwidth metrics: total bytes read from the contiguous AoS buffer
-        state.SetBytesProcessed(state.iterations() * num_points * sizeof(fc::PointAoS<float, Dim>));
+        // Metadata to help differentiate results in benchmark outputs
+        state.counters["Dim"] = static_cast<double>(Dim);
     }
-
-} // namespace
+}
 
 // --- Benchmark Registration ---
 
 /**
- * 1. Distance Metric Comparison
- * Fixed workload (100k points in 3D space).
- * Purpose: Isolate the computational cost of different mathematical distance policies
- * (Euclidean vs. Manhattan vs. Chebyshev) when processing standard AoS structures.
+ * Standard configurations for 3D spatial searches.
+ * Unit(kMillisecond) is used to capture the high latency of large brute-force scans.
  */
-BENCHMARK_TEMPLATE(BM_RadiusSearch_BruteForce, fc::metrics::EuclideanAoS, 3)
-->Arg(100'000)->Unit(benchmark::kMillisecond);
+#define AOS_COMMON_ARGS ->Arg(100'000)->Unit(benchmark::kMillisecond)
 
-BENCHMARK_TEMPLATE(BM_RadiusSearch_BruteForce, fc::metrics::ManhattanAoS, 3)
-->Arg(100'000)->Unit(benchmark::kMillisecond);
-
-BENCHMARK_TEMPLATE(BM_RadiusSearch_BruteForce, fc::metrics::ChebyshevAoS, 3)
-->Arg(100'000)->Unit(benchmark::kMillisecond);
+BENCHMARK_TEMPLATE(BM_RadiusSearch_AoS_BruteForce, EuclideanAoS, 3) AOS_COMMON_ARGS;
+BENCHMARK_TEMPLATE(BM_RadiusSearch_AoS_BruteForce, ManhattanAoS, 3) AOS_COMMON_ARGS;
+BENCHMARK_TEMPLATE(BM_RadiusSearch_AoS_BruteForce, ChebyshevAoS, 3) AOS_COMMON_ARGS;
 
 /**
- * 2. Dimensionality Impact Analysis
- * Fixed point count (10k points) with increasing dimensions (2D, 16D, 128D).
- * Purpose: Observe performance degradation caused by bloated point structures.
- * As dimensionality increases, fewer points fit into cache lines, turning the
- * application from compute-bound to memory-bandwidth-bound.
+ * Dimensionality Stress Tests:
+ * Comparing 2D vs High-Dimensional (128D) performance to observe how
+ * dimensionality affects data cache locality and calculation overhead.
  */
-BENCHMARK_TEMPLATE(BM_RadiusSearch_BruteForce, fc::metrics::EuclideanAoS, 2)
+BENCHMARK_TEMPLATE(BM_RadiusSearch_AoS_BruteForce, EuclideanAoS, 2)
 ->Arg(10'000)->Unit(benchmark::kMicrosecond);
 
-BENCHMARK_TEMPLATE(BM_RadiusSearch_BruteForce, fc::metrics::EuclideanAoS, 16)
+BENCHMARK_TEMPLATE(BM_RadiusSearch_AoS_BruteForce, EuclideanAoS, 128)
 ->Arg(10'000)->Unit(benchmark::kMicrosecond);
-
-BENCHMARK_TEMPLATE(BM_RadiusSearch_BruteForce, fc::metrics::EuclideanAoS, 128)
-->Arg(10'000)->Unit(benchmark::kMicrosecond);
-
-/**
- * 3. Workload Scalability
- * Scales from 1k to 1M points in standard 3D space.
- * Purpose: Verify the linear O(N) time complexity of the brute-force search algorithm.
- */
-BENCHMARK_TEMPLATE(BM_RadiusSearch_BruteForce, fc::metrics::EuclideanAoS, 3)
-->RangeMultiplier(10)->Range(1000, 1'000'000)
-->Unit(benchmark::kMillisecond);

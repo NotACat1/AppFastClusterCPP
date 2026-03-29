@@ -43,7 +43,7 @@ namespace fc::algorithms::test {
         DatasetSoA<T, Dim> empty_ds;
         std::array<T, Dim> query = { 0, 0, 0 };
 
-        auto results = radius_search_brute_force_soa<T, Dim, SquaredEuclideanPolicy>(empty_ds, query, 1.0f);
+        auto results = radius_search_brute_force_soa<T, Dim, SquaredEuclideanSoA>(empty_ds, query, 1.0f);
 
         EXPECT_TRUE(results.empty());
     }
@@ -57,7 +57,7 @@ namespace fc::algorithms::test {
         std::array<T, Dim> query = { 0, 0, 0 };
 
         // Expected distance to closest point is ~17.3; search radius is 5.0.
-        auto results = radius_search_brute_force_soa<T, Dim, SquaredEuclideanPolicy>(ds, query, 5.0f);
+        auto results = radius_search_brute_force_soa<T, Dim, SquaredEuclideanSoA>(ds, query, 5.0f);
 
         EXPECT_TRUE(results.empty());
     }
@@ -71,7 +71,7 @@ namespace fc::algorithms::test {
             });
         std::array<T, Dim> query = { 0, 0, 0 };
 
-        auto results = radius_search_brute_force_soa<T, Dim, SquaredEuclideanPolicy>(ds, query, 10.0f);
+        auto results = radius_search_brute_force_soa<T, Dim, SquaredEuclideanSoA>(ds, query, 10.0f);
 
         EXPECT_EQ(results.size(), 3);
     }
@@ -85,7 +85,7 @@ namespace fc::algorithms::test {
             });
         std::array<T, Dim> query = { 0, 0, 0 };
 
-        auto results = radius_search_brute_force_soa<T, Dim, SquaredEuclideanPolicy>(ds, query, 2.5f);
+        auto results = radius_search_brute_force_soa<T, Dim, SquaredEuclideanSoA>(ds, query, 2.5f);
 
         EXPECT_EQ(results.size(), 2);
         EXPECT_TRUE(contains(results, 0));
@@ -106,7 +106,7 @@ namespace fc::algorithms::test {
 
         // Input radius = 2.0. Internal effective_radius should be 4.0.
         // Since 3.0 (dist^2) <= 4.0, the point must be found.
-        auto results = radius_search_brute_force_soa<T, Dim, EuclideanPolicy>(ds, query, 2.0f);
+        auto results = radius_search_brute_force_soa<T, Dim, EuclideanSoA>(ds, query, 2.0f);
 
         ASSERT_EQ(results.size(), 1);
         EXPECT_EQ(results[0], 0);
@@ -120,7 +120,7 @@ namespace fc::algorithms::test {
             });
         std::array<T, Dim> query = { 0, 0, 0 };
 
-        auto results = radius_search_brute_force_soa<T, Dim, ManhattanPolicy>(ds, query, 2.7f);
+        auto results = radius_search_brute_force_soa<T, Dim, ManhattanSoA>(ds, query, 2.7f);
 
         ASSERT_EQ(results.size(), 1);
         EXPECT_EQ(results[0], 1);
@@ -142,7 +142,7 @@ namespace fc::algorithms::test {
         T radius = 100.0f;
 
         // For SquaredEuclidean, points with index 0 to 100 (101 points total) should be within range.
-        auto results = radius_search_brute_force_soa<T, Dim, SquaredEuclideanPolicy>(ds, query, radius * radius);
+        auto results = radius_search_brute_force_soa<T, Dim, SquaredEuclideanSoA>(ds, query, radius * radius);
 
         EXPECT_EQ(results.size(), 101);
 

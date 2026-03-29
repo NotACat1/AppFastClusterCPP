@@ -1,121 +1,101 @@
 #include <benchmark/benchmark.h>
+#include <omp.h>
 #include <random>
 #include <vector>
-#include <omp.h>
-
-// Project-specific headers for AoSoA (Array-of-Structures-of-Arrays) data layout
 #include "dataset_aosoa.hpp"
 #include "metrics_aosoa.hpp"
 #include "radius_search_aosoa.hpp"
 
 namespace {
+    using namespace fc;
+    using namespace fc::metrics;
+    using namespace fc::algorithms;
 
     /**
-     * @brief Utility to generate a synthetic AoSoA dataset for benchmarking.
-     * * The AoSoA layout combines the cache friendliness of AoS with the
-     * SIMD vectorization efficiency of SoA.
-     * * @param n Total number of points to generate.
-     * @return fc::DatasetAoSoA<float, 3, 8> A dataset with 3D coordinates and 8-lane SIMD blocks.
+     * @brief Generates a synthetic dataset optimized for SIMD execution (AoSoA layout).
+     * * The Array-of-Structures-of-Arrays (AoSoA) memory model groups data into fixed-size
+     * blocks corresponding to the CPU's vector register width (LaneWidth). This generator
+     * populates those blocks using a deterministic PRNG to guarantee reproducible
+     * benchmark results across different hardware topologies.
+     * * @tparam Dim       Spatial dimensionality of the dataset.
+     * @tparam LaneWidth  SIMD vector length (e.g., 8 for 256-bit AVX2 floats).
+     * @param  n          Total number of points to ingest.
+     * @return DatasetAoSoA structured for contiguous, vectorized memory access.
      */
-    fc::DatasetAoSoA<float, 3, 8> create_random_aosoa_dataset(std::size_t n) {
-        fc::DatasetAoSoA<float, 3, 8> ds;
-
-        // Fixed seed ensures deterministic spatial distribution across benchmark runs
+    template <std::size_t Dim, std::size_t LaneWidth>
+    DatasetAoSoA<float, Dim, LaneWidth> create_random_dataset_aosoa(std::size_t n) {
+        DatasetAoSoA<float, Dim, LaneWidth> ds;
+        // Fixed seed ensures the computational workload remains identical between runs
         std::mt19937 gen(42);
         std::uniform_real_distribution<float> dis(-100.0f, 100.0f);
 
         for (std::size_t i = 0; i < n; ++i) {
-            ds.add_point({ dis(gen), dis(gen), dis(gen) });
+            std::array<float, Dim> pt;
+            for (std::size_t d = 0; d < Dim; ++d) {
+                pt[d] = dis(gen);
+            }
+            // The add_point method handles the complex mapping from a scalar 
+            // point representation into the internal blocked AoSoA memory layout.
+            ds.add_point(pt);
         }
         return ds;
     }
 
     /**
-     * @brief Benchmark harness for evaluating radius search on AoSoA data structures.
-     * * Measures the throughput of brute-force search across various distance metrics
-     * and multithreaded configurations.
-     * * @tparam Metric The SIMD-enabled distance policy (e.g., SquaredEuclidean).
+     * @brief Evaluates multi-threaded, SIMD-accelerated brute-force radius search.
+     * * This benchmark explicitly measures the combined performance gains of data-level
+     * parallelism (SIMD via AoSoA) and thread-level parallelism (OpenMP). It allows
+     * for empirical analysis of multi-core scaling efficiency and memory bandwidth limits.
+     * * @tparam Metric     Distance policy (e.g., SquaredEuclideanAoSoA).
+     * @tparam Dim        Spatial dimensionality.
+     * @tparam LaneWidth  Hardware-specific SIMD width (defaults to 8 for AVX/AVX2).
      */
-    template <typename Metric>
-    void BM_RadiusSearch_AoSoA(benchmark::State& state) {
-        const std::size_t num_points = state.range(0);
-        const int num_threads = state.range(1);
+    template <typename Metric, std::size_t Dim, std::size_t LaneWidth = 8>
+    void BM_RadiusSearch_AoSoA_BruteForce(benchmark::State& state) {
+        // Extract benchmark parameters injected via Args()
+        const std::size_t num_points = static_cast<std::size_t>(state.range(0));
+        const int num_threads = static_cast<int>(state.range(1));
 
-        // Dynamically adjust OpenMP thread pool for the current execution state
+        // Dynamically configure the OpenMP thread pool for this specific benchmark iteration
         omp_set_num_threads(num_threads);
 
-        auto dataset = create_random_aosoa_dataset(num_points);
-
-        // Origin-based query point for standardized distance testing
-        std::array<float, 3> query = { 0.0f, 0.0f, 0.0f };
+        // Prepare the aligned dataset and a standardized query point
+        auto dataset = create_random_dataset_aosoa<Dim, LaneWidth>(num_points);
+        std::array<float, Dim> query;
+        query.fill(0.0f);
         float radius = 10.0f;
 
+        // --- Benchmark Hot Loop ---
         for (auto _ : state) {
-            auto indices = fc::algorithms::radius_search_brute_force_aosoa<Metric>(
-                dataset, query, radius
-            );
-            // Prevent compiler from eliding the search operation
+            auto indices = radius_search_brute_force_aosoa<Metric>(dataset, query, radius);
+
+            // Optimization Barrier: Prevents the compiler from eliding the search computation
             benchmark::DoNotOptimize(indices);
         }
 
-        // Throughput metrics: points processed per second
+        /**
+         * Report hardware-level throughput metrics.
+         * Note: BytesProcessed is calculated using the exact 'block_count()' rather
+         * than 'num_points' to account for memory padding intrinsic to the AoSoA layout.
+         */
         state.SetItemsProcessed(state.iterations() * num_points);
+        state.SetBytesProcessed(state.iterations() * dataset.block_count() * sizeof(SimdBlock<float, Dim, LaneWidth>));
 
-        // Memory bandwidth metrics: total bytes loaded from AoSoA blocks
-        state.SetBytesProcessed(state.iterations() * dataset.block_count() * sizeof(fc::SimdBlock<float, 3, 8>));
-
-        // Metadata counters for performance reporting
-        state.counters["Threads"] = num_threads;
+        // Export the active thread count to the benchmark output table for scaling analysis
+        state.counters["Threads"] = static_cast<double>(num_threads);
     }
-
-} // namespace
+}
 
 // --- Benchmark Registration ---
 
 /**
- * 1. Metric Policy Comparison
- * Fixed workload (100k points), single-threaded execution.
- * Purpose: Isolate the raw computational efficiency of different distance metrics
- * and verify the performance gains from SIMD intrinsics (AVX2/AVX-512)
- * compared to standard AoS implementations.
+ * Multi-threading Scaling Analysis:
+ * We test the 3D Squared Euclidean search using 100,000 points.
+ * The Args({Points, Threads}) configuration isolates the effect of OpenMP:
+ * - {100'000, 1}: Establishes the single-threaded SIMD baseline.
+ * - {100'000, 8}: Evaluates parallel scaling efficiency across 8 logical cores.
  */
-BENCHMARK_TEMPLATE(BM_RadiusSearch_AoSoA, fc::metrics::SquaredEuclidean)
-->Args({ 100'000, 1 })->Unit(benchmark::kMicrosecond);
-
-BENCHMARK_TEMPLATE(BM_RadiusSearch_AoSoA, fc::metrics::Euclidean)
-->Args({ 100'000, 1 })->Unit(benchmark::kMicrosecond);
-
-BENCHMARK_TEMPLATE(BM_RadiusSearch_AoSoA, fc::metrics::Manhattan)
-->Args({ 100'000, 1 })->Unit(benchmark::kMicrosecond);
-
-BENCHMARK_TEMPLATE(BM_RadiusSearch_AoSoA, fc::metrics::Chebyshev)
-->Args({ 100'000, 1 })->Unit(benchmark::kMicrosecond);
-
-/**
- * 2. Parallel Scalability (OpenMP)
- * Large workload (1M points), varying thread counts.
- * Purpose: Analyze the speedup factor and parallel efficiency as hardware
- * concurrency increases from 1 to 8 cores.
- */
-BENCHMARK_TEMPLATE(BM_RadiusSearch_AoSoA, fc::metrics::SquaredEuclidean)
-->Args({ 1'000'000, 1 })
-->Args({ 1'000'000, 2 })
-->Args({ 1'000'000, 4 })
-->Args({ 1'000'000, 8 })
-->Unit(benchmark::kMillisecond);
-
-/**
- * 3. Data Volume Scalability
- * Tests range from 10k to 10M points using maximum system concurrency.
- * Purpose: Observe how the AoSoA layout maintains cache locality as the dataset
- * exceeds various CPU cache levels (L1/L2/L3).
- */
-static void CustomArguments(benchmark::Benchmark* b) {
-    int max_threads = omp_get_max_threads();
-    for (int i = 10'000; i <= 10'000'000; i *= 10) {
-        b->Args({ i, max_threads });
-    }
-}
-
-BENCHMARK_TEMPLATE(BM_RadiusSearch_AoSoA, fc::metrics::SquaredEuclidean)
-->Apply(CustomArguments)->Unit(benchmark::kMillisecond);
+BENCHMARK_TEMPLATE(BM_RadiusSearch_AoSoA_BruteForce, SquaredEuclideanAoSoA, 3)
+->Args({ 100'000, 1 })
+->Args({ 100'000, 8 })
+->Unit(benchmark::kMicrosecond);
