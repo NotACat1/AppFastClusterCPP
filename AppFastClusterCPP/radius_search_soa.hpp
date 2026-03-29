@@ -8,20 +8,21 @@
 namespace fc::algorithms {
 
     /**
-     * @brief High-performance brute-force radius search for SoA datasets using SIMD and OpenMP.
-     * * The algorithm is structured in two distinct phases to maximize CPU pipeline utilization:
-     * 1. Distance Computation: Batch calculation of distances using SIMD-optimized policies.
-     * 2. Parallel Filtering: Extracting valid indices using a thread-local accumulation strategy.
-     * * @tparam T Coordinate scalar type (e.g., float, double).
-     * @tparam Dim Spatial dimensionality.
-     * @tparam Policy Distance calculation policy (e.g., EuclideanPolicy).
-     * * @param dataset The input dataset in Structure-of-Arrays (SoA) format.
-     * @param query The target query point coordinates.
-     * @param radius The search radius.
-     * @return std::vector<std::size_t> A vector of indices for points falling within the radius.
+     * @brief High-performance brute-force radius search for SoA datasets.
+     * * This implementation is optimized for modern CPU architectures by leveraging:
+     * 1. Structure-of-Arrays (SoA) layout to facilitate SIMD auto-vectorization.
+     * 2. Cache-friendly sequential memory access patterns.
+     * 3. Multi-threaded execution via OpenMP with thread-local accumulation.
+     * * @tparam T        Coordinate scalar type (e.g., float, double).
+     * @tparam Dim      Spatial dimensionality.
+     * @tparam Policy   Distance calculation policy (must satisfy MetricSoA concept).
+     * * @param dataset   Input dataset in SoA format.
+     * @param query     Target query point coordinates.
+     * @param radius    Search radius threshold.
+     * @return std::vector<std::size_t> Indices of points within the specified radius.
      */
     template <fc::MLCoordinate T, std::size_t Dim, typename Policy>
-        requires fc::metrics::SoAMetricPolicy<Policy, T>
+        requires fc::metrics::MetricSoA<Policy, T>
     auto radius_search_brute_force_soa(
         const fc::DatasetSoA<T, Dim>& dataset,
         const std::array<T, Dim>& query,
@@ -31,31 +32,33 @@ namespace fc::algorithms {
         const std::size_t n = dataset.size();
         if (n == 0) return {};
 
-        // 1. Compute distances for all points in the dataset.
-        // The SoA layout and 64-byte alignment allow modern compilers (GCC/Clang) 
-        // to effectively apply SIMD auto-vectorization to the coordinate loops.
+        // 1. Distance Computation Phase
+        // The SoA layout ensures that coordinates are contiguous in memory, allowing 
+        // the compiler to generate efficient SIMD instructions (AVX/AVX-512/NEON).
         std::vector<T> distances(n);
         fc::metrics::compute_distances_soa<Policy>(query, dataset, distances);
 
-        // 2. Metric optimization: Comparison in squared space.
-        // For Euclidean metrics, we compare squared distances to avoid expensive square root operations.
+        // 2. Metric Optimization (Squared Space Comparison)
+        // To maximize instruction throughput, we perform comparisons in squared space 
+        // when using Euclidean metrics to avoid the overhead of square root operations.
         T effective_radius = radius;
-        if constexpr (std::is_same_v<Policy, fc::metrics::EuclideanPolicy>) {
+        if constexpr (std::is_same_v<Policy, fc::metrics::EuclideanSoA>) {
             effective_radius = radius * radius;
-            // Note: If using EuclideanPolicy, the compute_distances_soa call may include 
-            // a final sqrt() depending on implementation. For maximum throughput, 
-            // prefer SquaredEuclideanPolicy.
+            // Implementation Note: If 'compute_distances_soa' returns non-squared L2,
+            // ensure the policy is switched to SquaredEuclidean for optimal performance.
         }
 
-        // 3. Parallel index collection using OpenMP.
-        // We use thread-local vectors to eliminate race conditions and minimize 
-        // synchronization overhead during the hot loop.
+        // 3. Parallel Index Collection (Filtering)
+        // We utilize a thread-local accumulation strategy to minimize synchronization 
+        // overhead and prevent false sharing on the global results vector.
         std::vector<std::size_t> final_indices;
 
 #pragma omp parallel
         {
             std::vector<std::size_t> local_indices;
-            // Heuristic pre-allocation to reduce the frequency of reallocations within threads.
+
+            // Heuristic pre-allocation based on an assumed uniform distribution 
+            // to mitigate frequency of heap reallocations within the parallel region.
             local_indices.reserve(n / (omp_get_num_threads() * 2));
 
 #pragma omp for nowait
@@ -65,8 +68,9 @@ namespace fc::algorithms {
                 }
             }
 
-            // Consolidate thread-local results into the global output vector.
-            // Using a critical section here is safe as it happens only once per thread.
+            // Consolidate thread-local results into the shared output container.
+            // Using a critical section here is efficient as it is invoked only 
+            // once per thread after the main processing loop completes.
 #pragma omp critical
             {
                 final_indices.insert(final_indices.end(), local_indices.begin(), local_indices.end());
@@ -75,5 +79,4 @@ namespace fc::algorithms {
 
         return final_indices;
     }
-
 } // namespace fc::algorithms
